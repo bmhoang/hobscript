@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -66,6 +68,17 @@ namespace HobScript
             }
 
             return lastResult;
+        }
+
+        /// <summary>
+        /// Executes a script string asynchronously.
+        /// </summary>
+        /// <param name="script">The script to execute</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>A task producing the result of the last expression</returns>
+        public virtual Task<object> ExecuteAsync(string script, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => Execute(script), cancellationToken);
         }
 
         /// <summary>
@@ -404,6 +417,38 @@ namespace HobScript
         }
 
         /// <summary>
+        /// Executes a script from a file asynchronously.
+        /// </summary>
+        /// <param name="filePath">Path to the script file</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>A task producing the result of the last expression</returns>
+        public virtual async Task<object> ExecuteFileAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                throw new ScriptException("File path cannot be null or empty");
+
+            var fullPath = Path.GetFullPath(filePath);
+
+            if (!File.Exists(fullPath))
+                throw new ScriptException($"Script file not found: {fullPath}");
+
+            if (_loadedFiles.Contains(fullPath))
+                throw new ScriptException($"Circular import detected: {fullPath}");
+
+            _loadedFiles.Add(fullPath);
+
+            try
+            {
+                var script = await ReadFileContentAsync(fullPath, cancellationToken).ConfigureAwait(false);
+                return await ExecuteAsync(script, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _loadedFiles.Remove(fullPath);
+            }
+        }
+
+        /// <summary>
         /// Executes a script from a file with a specific working directory
         /// </summary>
         /// <param name="filePath">Path to the script file</param>
@@ -441,6 +486,28 @@ namespace HobScript
             var content = File.ReadAllText(filePath);
             _fileCache[filePath] = content;
             return content;
+        }
+
+        /// <summary>
+        /// Reads file content with caching (async).
+        /// </summary>
+        /// <param name="filePath">Path to the file</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>File content</returns>
+        private async Task<string> ReadFileContentAsync(string filePath, CancellationToken cancellationToken)
+        {
+            if (_fileCache.TryGetValue(filePath, out var cachedContent))
+            {
+                return cachedContent;
+            }
+
+            using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true))
+            using (var reader = new StreamReader(stream))
+            {
+                var content = await reader.ReadToEndAsync().ConfigureAwait(false);
+                _fileCache[filePath] = content;
+                return content;
+            }
         }
 
         /// <summary>

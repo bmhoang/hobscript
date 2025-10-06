@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace HobScript
@@ -184,9 +185,9 @@ namespace HobScript
         /// </summary>
         /// <param name="script">The script to execute</param>
         /// <returns>Task with the result</returns>
-        public new async Task<object> ExecuteAsync(string script)
+        public override async Task<object> ExecuteAsync(string script, CancellationToken cancellationToken = default)
         {
-            return await Task.Run(() => Execute(script));
+            return await Task.Run(() => Execute(script), cancellationToken);
         }
 
         /// <summary>

@@ -37,6 +37,7 @@ Creates a new instance of the HobScriptEngine with default settings.
 
 ```csharp
 public object Execute(string script)
+public Task<object> ExecuteAsync(string script, CancellationToken cancellationToken = default)
 ```
 
 Executes a script string and returns the result of the last expression.
@@ -46,11 +47,15 @@ Executes a script string and returns the result of the last expression.
 
 **Returns:**
 - `object`: The result of the last expression in the script
+- `Task<object>`: Async execution result
 
 **Example:**
 ```csharp
 var engine = new HobScriptEngine();
 var result = engine.Execute("x = 10; y = 20; x + y"); // Returns 30
+
+// Async
+var asyncResult = await engine.ExecuteAsync("x = 10\ny = 20\nx + y");
 ```
 
 #### ExecuteFile
@@ -58,6 +63,7 @@ var result = engine.Execute("x = 10; y = 20; x + y"); // Returns 30
 ```csharp
 public object ExecuteFile(string filePath)
 public object ExecuteFile(string filePath, string workingDirectory)
+public Task<object> ExecuteFileAsync(string filePath, CancellationToken cancellationToken = default)
 ```
 
 Loads and executes a script file.
@@ -68,12 +74,16 @@ Loads and executes a script file.
 
 **Returns:**
 - `object`: The result of the last expression in the script
+- `Task<object>`: Async execution result
 
 **Example:**
 ```csharp
 var engine = new HobScriptEngine();
 var result = engine.ExecuteFile("my_script.hob");
 var result2 = engine.ExecuteFile("scripts/main.hob", "/path/to/scripts");
+
+// Async file execution
+var asyncResult = await engine.ExecuteFileAsync("my_script.hob");
 ```
 
 #### Variable Management

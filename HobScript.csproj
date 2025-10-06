@@ -10,6 +10,11 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Tests/**/*.cs" />
+    <None Remove="Tests/**/*.cs" />
+  </ItemGroup>
+
   <PropertyGroup>
     <AssemblyTitle>HobScript</AssemblyTitle>
     <AssemblyDescription>A powerful C# script engine library that can execute C#-like scripts with custom functions, variable storage, file loading, and import capabilities. Compatible with both .NET Core and .NET Framework.</AssemblyDescription>

@@ -15,6 +15,7 @@ A powerful C# script engine library that can execute C#-like scripts with custom
 - [Script Contexts](#script-contexts)
 - [Built-in Functions](#built-in-functions)
 - [Runtime Execution](#runtime-execution)
+- [Async and Parallel Execution](#async-and-parallel-execution)
 - [Error Handling](#error-handling)
 - [Advanced Features](#advanced-features)
 - [Examples](#examples)
@@ -539,6 +540,48 @@ engine.Execute(runtimeScript);
 var totalTax = engine.GetVariable("total_tax");
 Console.WriteLine($"Total tax from script: ${totalTax}");
 ```
+
+## Async and Parallel Execution
+
+Run scripts asynchronously and in parallel by using the async APIs. Create separate engine instances per concurrent script.
+
+### Execute script strings asynchronously
+
+```csharp
+var e1 = new HobScriptEngine();
+var e2 = new HobScriptEngine();
+
+var t1 = e1.ExecuteAsync("a = 1 + 2\na");
+var t2 = e2.ExecuteAsync("b = 10 * 3\nb");
+
+var results = await Task.WhenAll(t1, t2);
+// results[0] == 3, results[1] == 30
+```
+
+### Execute files asynchronously
+
+```csharp
+var e1 = new ScriptEngine();
+var e2 = new ScriptEngine();
+
+var t1 = e1.ExecuteFileAsync("main_script.hob");
+var t2 = e2.ExecuteFileAsync("runtime_execution_example.hob");
+
+await Task.WhenAll(t1, t2);
+```
+
+### Cancellation support
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+var engine = new HobScriptEngine();
+await engine.ExecuteAsync("x = 42\nx", cts.Token);
+```
+
+Notes:
+- Async methods wrap execution with Task.Run and use async I/O for files.
+- Use separate engine instances for parallel runs; engines are not thread-safe.
 
 ### Interactive Script Execution
 
