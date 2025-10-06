@@ -1,0 +1,27 @@
+// Math utility functions
+pi = 3.14159
+e = 2.71828
+
+// Function to calculate area of circle
+function calculate_circle_area(radius)
+{
+    return pi * radius * radius
+}
+
+// Function to calculate factorial
+function factorial(n)
+{
+    if (n <= 1)
+        return 1
+    else
+        return n * factorial(n - 1)
+}
+
+// Function to calculate fibonacci
+function fibonacci(n)
+{
+    if (n <= 1)
+        return n
+    else
+        return fibonacci(n - 1) + fibonacci(n - 2)
+}

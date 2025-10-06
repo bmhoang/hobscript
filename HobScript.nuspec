@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>HobScript</id>
+    <version>1.0.0</version>
+    <title>HobScript</title>
+    <authors>HobScript Team</authors>
+    <owners>HobScript Team</owners>
+    <description>A powerful C# script engine library that can execute C#-like scripts with custom functions and variable storage. Compatible with both .NET Core and .NET Framework.</description>
+    <summary>C# Script Engine with Custom Functions and Variable Storage</summary>
+    <language>en-US</language>
+    <projectUrl>https://github.com/yourusername/hobscript</projectUrl>
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <copyright>Copyright 2024</copyright>
+    <tags>script engine csharp dotnet core framework</tags>
+    <repository type="git" url="https://github.com/yourusername/hobscript" />
+    <dependencies>
+      <group targetFramework=".NETCoreApp3.1">
+        <dependency id="System.Text.RegularExpressions" version="4.3.1" />
+      </group>
+      <group targetFramework=".NETFramework4.8">
+        <dependency id="System.Text.RegularExpressions" version="4.3.1" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Release\net6.0\HobScript.dll" target="lib\net6.0\HobScript.dll" />
+    <file src="bin\Release\net6.0\HobScript.pdb" target="lib\net6.0\HobScript.pdb" />
+    <file src="bin\Release\net48\HobScript.dll" target="lib\net48\HobScript.dll" />
+    <file src="bin\Release\net48\HobScript.pdb" target="lib\net48\HobScript.pdb" />
+    <file src="README.md" target="README.md" />
+  </files>
+</package>

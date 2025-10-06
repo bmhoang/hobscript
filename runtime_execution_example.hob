@@ -1,0 +1,17 @@
+// This script defines some functions and variables
+// that can be used later at runtime
+
+// Define some utility functions
+function greet(name)
+{
+    return "Hello, " + name + "!"
+}
+
+function calculate_tax(amount, rate)
+{
+    return amount * rate / 100
+}
+
+// Set some initial variables
+company_name = "HobScript Corp"
+version = "1.0.0"

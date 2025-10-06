@@ -1,0 +1,33 @@
+// Main script that imports and uses utility modules
+import "math_utils.hob"
+import "string_utils.hob"
+
+// Test math utilities
+print("=== Math Utilities Test ===")
+radius = 5
+area = calculate_circle_area(radius)
+print("Circle area with radius " + radius + " = " + area)
+
+factorial_result = factorial(5)
+print("Factorial of 5 = " + factorial_result)
+
+fib_result = fibonacci(10)
+print("Fibonacci(10) = " + fib_result)
+
+// Test string utilities
+print("\n=== String Utilities Test ===")
+test_string = "Hello World"
+reversed = reverse_string(test_string)
+print("Original: " + test_string)
+print("Reversed: " + reversed)
+
+word_count = count_words("This is a test sentence with multiple words")
+print("Word count: " + word_count)
+
+capitalized = capitalize("hello world")
+print("Capitalized: " + capitalized)
+
+// Test constants from math_utils
+print("\n=== Constants Test ===")
+print("Pi = " + pi)
+print("E = " + e)

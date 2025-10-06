@@ -1,0 +1,10 @@
+// This script defines various types of variables
+user_id = 12345
+user_name = "Alice Johnson"
+user_email = "alice@example.com"
+user_age = 28
+user_salary = 75000.50
+is_employee = true
+department = "Engineering"
+skills = ["C#", "JavaScript", "Python"]
+last_login = "2024-01-15"

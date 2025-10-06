@@ -1,0 +1,5 @@
+// Simple test without function definitions
+x = 10
+y = 20
+result = x + y
+print("Simple test result: " + result)

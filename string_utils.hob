@@ -1,0 +1,55 @@
+// String utility functions
+
+// Function to reverse a string
+function reverse_string(str)
+{
+    result = ""
+    for (i = length(str) - 1; i >= 0; i = i - 1)
+    {
+        result = result + str[i]
+    }
+    return result
+}
+
+// Function to count words in a string
+function count_words(str)
+{
+    words = 0
+    in_word = false
+    
+    for (i = 0; i < length(str); i = i + 1)
+    {
+        char = str[i]
+        if (char != " " && char != "\t" && char != "\n")
+        {
+            if (!in_word)
+            {
+                words = words + 1
+                in_word = true
+            }
+        }
+        else
+        {
+            in_word = false
+        }
+    }
+    
+    return words
+}
+
+// Function to capitalize first letter
+function capitalize(str)
+{
+    if (length(str) == 0)
+        return str
+    
+    first_char = upper(str[0])
+    rest = ""
+    
+    for (i = 1; i < length(str); i = i + 1)
+    {
+        rest = rest + str[i]
+    }
+    
+    return first_char + rest
+}
