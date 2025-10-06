@@ -3,6 +3,12 @@ bin/
 obj/
 out/
 
+# NuGet packages and build outputs
+nupkgs/
+*.nupkg
+*.snupkg
+packages/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -373,6 +379,15 @@ FodyWeavers.xsd
 # Script files for testing (optional - uncomment if you don't want to track test scripts)
 # *.hob
 # *.txt
+
+# Build artifacts and outputs
+*.nupkg
+*.snupkg
+nupkgs/
+packages/
+artifacts/
+dist/
+build-output/
 
 # Temporary files
 *.tmp
