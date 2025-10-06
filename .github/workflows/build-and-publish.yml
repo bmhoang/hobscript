@@ -1,0 +1,245 @@
+name: Build and Publish HobScript
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '6.0.x'
+  NUGET_SOURCE: 'https://api.nuget.org/v3/index.json'
+  PACKAGE_NAME: 'HobScript'
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        target-framework: ['net6.0', 'net48']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+    
+    - name: Restore dependencies
+      run: dotnet restore HobScript.csproj
+    
+    - name: Build library
+      run: dotnet build HobScript.csproj --configuration Release --no-restore --verbosity normal
+    
+    - name: Build console application
+      run: dotnet build HobScript.Console.csproj --configuration Release --no-restore --verbosity normal
+    
+    - name: Run tests (if any)
+      run: |
+        if (Test-Path "Tests") {
+          dotnet test --configuration Release --no-build --verbosity normal
+        } else {
+          echo "No tests found, skipping test execution"
+        }
+      shell: pwsh
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-${{ matrix.target-framework }}
+        path: |
+          bin/Release/
+          obj/Release/
+        retention-days: 7
+
+  create-nuget:
+    name: Create NuGet Package
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Get version from tag or commit
+      id: version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#v}
+        else
+          VERSION="0.1.0-preview.${{ github.run_number }}"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Package version: $VERSION"
+    
+    - name: Update version in project file
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        # Update HobScript.csproj version
+        sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" HobScript.csproj
+        # Update HobScript.nuspec version
+        sed -i "s/<version>.*<\/version>/<version>$VERSION<\/version>/" HobScript.nuspec
+        echo "Updated version to: $VERSION"
+    
+    - name: Restore dependencies
+      run: dotnet restore HobScript.csproj
+    
+    - name: Pack NuGet package
+      run: |
+        dotnet pack HobScript.csproj --configuration Release --no-restore --output ./nupkgs --verbosity normal
+        echo "Created NuGet package in ./nupkgs/"
+    
+    - name: List created packages
+      run: |
+        ls -la ./nupkgs/
+        echo "Package contents:"
+        find ./nupkgs/ -name "*.nupkg" -exec echo "Package: {}" \;
+    
+    - name: Upload NuGet package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-package
+        path: ./nupkgs/*.nupkg
+        retention-days: 30
+
+  publish-nuget:
+    name: Publish to NuGet
+    runs-on: ubuntu-latest
+    needs: [build, create-nuget]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Download NuGet package
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-package
+        path: ./nupkgs/
+    
+    - name: Publish to NuGet.org
+      run: |
+        dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source ${{ env.NUGET_SOURCE }} --skip-duplicate
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+  publish-github:
+    name: Publish to GitHub Packages
+    runs-on: ubuntu-latest
+    needs: [build, create-nuget]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Download NuGet package
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-package
+        path: ./nupkgs/
+    
+    - name: Publish to GitHub Packages
+      run: |
+        dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build, create-nuget]
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Download NuGet package
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-package
+        path: ./nupkgs/
+    
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: |
+          ## HobScript ${{ github.ref_name }}
+          
+          ### What's New
+          - C# Script Engine with C#-like syntax
+          - Custom function registration and object method support
+          - Variable management with type safety
+          - File loading and import system
+          - Script-defined functions
+          - Script contexts for isolated execution
+          - Runtime execution capabilities
+          - Comprehensive error handling
+          - Built-in math and string functions
+          - Cross-platform support (.NET Core and .NET Framework)
+          
+          ### Installation
+          ```bash
+          dotnet add package HobScript
+          ```
+          
+          ### Documentation
+          - [Quick Start Guide](https://github.com/${{ github.repository }}/blob/master/QUICK_START.md)
+          - [Complete Examples](https://github.com/${{ github.repository }}/blob/master/EXAMPLES.md)
+          - [API Documentation](https://github.com/${{ github.repository }}/blob/master/API_DOCUMENTATION.md)
+          
+          ### Downloads
+          - NuGet Package: Available on [NuGet.org](https://www.nuget.org/packages/HobScript/)
+          - GitHub Packages: Available in this repository's packages
+        draft: false
+        prerelease: false
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./nupkgs/*.nupkg
+        asset_name: HobScript.nupkg
+        asset_content_type: application/octet-stream

@@ -5,13 +5,55 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <PropertyGroup>
     <AssemblyTitle>HobScript</AssemblyTitle>
-    <AssemblyDescription>A C# script engine with custom functions and variable storage</AssemblyDescription>
+    <AssemblyDescription>A powerful C# script engine library that can execute C#-like scripts with custom functions, variable storage, file loading, and import capabilities. Compatible with both .NET Core and .NET Framework.</AssemblyDescription>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.0</Version>
+    <PackageId>HobScript</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Authors>bmhoang</Authors>
+    <Company>HobScript</Company>
+    <Product>HobScript C# Script Engine</Product>
+    <Copyright>Copyright © 2025</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/bmhoang/hobscript</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bmhoang/hobscript.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>script;engine;csharp;dotnet;runtime;execution;variables;functions</PackageTags>
+    <PackageDescription>A powerful C# script engine library that can execute C#-like scripts with custom functions, variable storage, file loading, and import capabilities. The library is compatible with both .NET Core and .NET Framework.
+
+Features:
+- C#-like syntax for script execution
+- Custom function registration and object method support
+- Variable management with type safety
+- File loading and import system with circular dependency detection
+- Script-defined functions with parameter support
+- Script contexts for isolated execution
+- Runtime execution capabilities
+- Comprehensive error handling
+- Built-in math and string functions
+- Global variables and persistent state
+- Cross-platform support (.NET Core and .NET Framework)
+
+Perfect for configuration management, dynamic calculations, template processing, and any scenario requiring runtime script execution.</PackageDescription>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Initial release of HobScript C# Script Engine Library with comprehensive features for script execution, custom functions, variable management, and file loading capabilities.</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+  </ItemGroup>
 
 </Project>

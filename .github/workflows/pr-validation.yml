@@ -1,0 +1,92 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    branches: [ master, main, develop ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '6.0.x'
+
+jobs:
+  validate:
+    name: Validate Pull Request
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        target-framework: ['net6.0', 'net48']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+    
+    - name: Restore dependencies
+      run: dotnet restore HobScript.csproj
+    
+    - name: Build library
+      run: dotnet build HobScript.csproj --configuration Release --no-restore --verbosity normal
+    
+    - name: Build console application
+      run: dotnet build HobScript.Console.csproj --configuration Release --no-restore --verbosity normal
+    
+    - name: Run code analysis
+      run: |
+        dotnet build HobScript.csproj --configuration Release --no-restore --verbosity normal --property:RunAnalyzersDuringBuild=true
+        echo "Code analysis completed"
+    
+    - name: Check for warnings
+      run: |
+        dotnet build HobScript.csproj --configuration Release --no-restore --verbosity normal 2>&1 | tee build.log
+        if grep -i "warning" build.log; then
+          echo "Warnings found in build:"
+          grep -i "warning" build.log
+        else
+          echo "No warnings found in build"
+        fi
+    
+    - name: Validate NuGet package creation
+      run: |
+        dotnet pack HobScript.csproj --configuration Release --no-restore --output ./nupkgs --verbosity normal
+        if [ -f "./nupkgs/*.nupkg" ]; then
+          echo "NuGet package created successfully"
+          ls -la ./nupkgs/
+        else
+          echo "Failed to create NuGet package"
+          exit 1
+        fi
+    
+    - name: Test package installation
+      run: |
+        # Create a test project to verify package can be installed
+        mkdir test-install
+        cd test-install
+        dotnet new console -n TestProject
+        cd TestProject
+        dotnet add package ../nupkgs/*.nupkg --source ../nupkgs
+        dotnet build
+        echo "Package installation test passed"
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: pr-validation-${{ matrix.target-framework }}
+        path: |
+          bin/Release/
+          nupkgs/
+        retention-days: 3

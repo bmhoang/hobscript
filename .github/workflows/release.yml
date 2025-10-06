@@ -1,0 +1,158 @@
+name: Create Release and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+env:
+  DOTNET_VERSION: '6.0.x'
+  NUGET_SOURCE: 'https://api.nuget.org/v3/index.json'
+
+jobs:
+  create-release:
+    name: Create Release and Publish
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Get version
+      id: version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#v}
+        else
+          VERSION=${{ github.event.inputs.version }}
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Package version: $VERSION"
+    
+    - name: Update version in project file
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        # Update version in HobScript.csproj
+        sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" HobScript.csproj
+        sed -i "s/<PackageVersion>.*<\/PackageVersion>/<PackageVersion>$VERSION<\/PackageVersion>/" HobScript.csproj
+        sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$VERSION.0<\/AssemblyVersion>/" HobScript.csproj
+        sed -i "s/<FileVersion>.*<\/FileVersion>/<FileVersion>$VERSION.0<\/FileVersion>/" HobScript.csproj
+        echo "Updated version to: $VERSION"
+    
+    - name: Restore dependencies
+      run: dotnet restore HobScript.csproj
+    
+    - name: Build library
+      run: dotnet build HobScript.csproj --configuration Release --no-restore
+    
+    - name: Pack NuGet package
+      run: |
+        dotnet pack HobScript.csproj --configuration Release --no-restore --output ./nupkgs --verbosity normal
+        echo "Created NuGet package in ./nupkgs/"
+        ls -la ./nupkgs/
+    
+    - name: Publish to NuGet.org
+      run: |
+        dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source ${{ env.NUGET_SOURCE }} --skip-duplicate
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    
+    - name: Publish to GitHub Packages
+      run: |
+        dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: HobScript ${{ steps.version.outputs.version }}
+        body: |
+          ## HobScript ${{ steps.version.outputs.version }}
+          
+          ### 🚀 What's New
+          - **C# Script Engine**: Execute C#-like scripts with custom functions
+          - **Variable Management**: Type-safe variable storage and retrieval
+          - **File Loading**: Load and execute scripts from files with import support
+          - **Script-Defined Functions**: Define functions directly within scripts
+          - **Script Contexts**: Isolated execution environments
+          - **Runtime Execution**: Load scripts first, then execute additional code
+          - **Cross-Platform**: Compatible with .NET Core and .NET Framework
+          - **Comprehensive Documentation**: Complete guides and examples
+          
+          ### 📦 Installation
+          ```bash
+          # .NET Core / .NET 5+
+          dotnet add package HobScript
+          
+          # Package Manager
+          Install-Package HobScript
+          ```
+          
+          ### 📚 Documentation
+          - **[Quick Start Guide](https://github.com/${{ github.repository }}/blob/master/QUICK_START.md)** - Get up and running in minutes
+          - **[Complete Examples](https://github.com/${{ github.repository }}/blob/master/EXAMPLES.md)** - 50+ working examples
+          - **[API Documentation](https://github.com/${{ github.repository }}/blob/master/API_DOCUMENTATION.md)** - Complete API reference
+          - **[Main Documentation](https://github.com/${{ github.repository }}/blob/master/README.md)** - Full feature overview
+          
+          ### 🔧 Quick Example
+          ```csharp
+          using HobScript;
+          
+          var engine = new HobScriptEngine();
+          engine.RegisterFunction("add", new Func<int, int, int>((a, b) => a + b));
+          
+          var result = engine.Execute(@"
+              x = 10
+              y = 20
+              z = add(x, y)
+              print(z)
+          ");
+          
+          var z = engine.GetVariable("z"); // Returns: 30
+          ```
+          
+          ### 🎯 Use Cases
+          - Configuration management
+          - Dynamic calculations
+          - Template processing
+          - Runtime script execution
+          - Data processing pipelines
+          - Interactive applications
+          
+          ### 📋 Requirements
+          - .NET 6.0 or .NET Framework 4.8
+          - C# 9.0 or later
+          
+          ### 🔗 Links
+          - **GitHub Repository**: https://github.com/${{ github.repository }}
+          - **NuGet Package**: https://www.nuget.org/packages/HobScript/
+          - **Issues**: https://github.com/${{ github.repository }}/issues
+          - **Discussions**: https://github.com/${{ github.repository }}/discussions
+        draft: false
+        prerelease: false
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./nupkgs/*.nupkg
+        asset_name: HobScript-${{ steps.version.outputs.version }}.nupkg
+        asset_content_type: application/octet-stream

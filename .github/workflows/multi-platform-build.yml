@@ -1,0 +1,120 @@
+name: Multi-Platform Build and Test
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '6.0.x'
+
+jobs:
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Restore dependencies
+      run: dotnet restore HobScript.csproj
+    
+    - name: Build library (.NET 6.0)
+      run: dotnet build HobScript.csproj --configuration Release --framework net6.0 --no-restore
+    
+    - name: Build library (.NET Framework 4.8)
+      run: dotnet build HobScript.csproj --configuration Release --framework net48 --no-restore
+    
+    - name: Build console application
+      run: dotnet build HobScript.Console.csproj --configuration Release --no-restore
+    
+    - name: Run console application test
+      run: dotnet run --project HobScript.Console.csproj --configuration Release --no-build
+
+  build-linux:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Restore dependencies
+      run: dotnet restore HobScript.csproj
+    
+    - name: Build library (.NET 6.0)
+      run: dotnet build HobScript.csproj --configuration Release --framework net6.0 --no-restore
+    
+    - name: Build console application
+      run: dotnet build HobScript.Console.csproj --configuration Release --no-restore
+    
+    - name: Run console application test
+      run: dotnet run --project HobScript.Console.csproj --configuration Release --no-build
+
+  build-macos:
+    name: Build on macOS
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Restore dependencies
+      run: dotnet restore HobScript.csproj
+    
+    - name: Build library (.NET 6.0)
+      run: dotnet build HobScript.csproj --configuration Release --framework net6.0 --no-restore
+    
+    - name: Build console application
+      run: dotnet build HobScript.Console.csproj --configuration Release --no-restore
+    
+    - name: Run console application test
+      run: dotnet run --project HobScript.Console.csproj --configuration Release --no-build
+
+  test-compatibility:
+    name: Test .NET Framework Compatibility
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Restore dependencies
+      run: dotnet restore HobScript.csproj
+    
+    - name: Build for .NET Framework 4.8
+      run: dotnet build HobScript.csproj --configuration Release --framework net48 --no-restore
+    
+    - name: Test .NET Framework compatibility
+      run: |
+        # Create a test project targeting .NET Framework 4.8
+        mkdir test-net48
+        cd test-net48
+        dotnet new console -f net48 -n TestNet48
+        cd TestNet48
+        dotnet add reference ../../HobScript.csproj
+        dotnet build
+        echo "Test completed successfully"
